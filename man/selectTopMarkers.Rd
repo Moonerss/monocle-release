@@ -15,7 +15,7 @@ selectTopMarkers(marker_specificities, num_markers = 10)
 A data frame of specificity results
 }
 \description{
-This is a handy wrapper function around dplyr's top_n function to extract
+This is a handy wrapper function around dplyr's slice_max function to extract
 the most specific genes for each cell type. Convenient, for example, for 
 selecting a balanced set of genes to be used in semi-supervised clustering 
 or ordering.

@@ -507,17 +507,15 @@ estimateDispersionsForCellDataSet <- function(cds, modelFormulaStr, relative_exp
   mu <- NA
   model_terms <- unlist(lapply(str_split(modelFormulaStr, "~|\\+|\\*"), str_trim))
   model_terms <- model_terms[model_terms != ""]
-  progress_opts <- options()$dplyr.show_progress
-  options(dplyr.show_progress = T)
 
   # FIXME: this needs refactoring, badly.
   if (cds@expressionFamily@vfamily %in% c("negbinomial", "negbinomial.size")){
     if (length(model_terms) > 1 || (length(model_terms) == 1 && model_terms[1] != "1")){
-      cds_pdata <- dplyr::group_by_(dplyr::select_(rownames_to_column(pData(cds)), "rowname", .dots=model_terms), .dots=model_terms)
-      disp_table <- as.data.frame(cds_pdata %>% do(disp_calc_helper_NB(cds[,.$rowname], cds@expressionFamily, min_cells_detected)))
+      cds_pdata <- dplyr::group_by(dplyr::select(rownames_to_column(pData(cds)), rowname, dplyr::all_of(model_terms)), dplyr::across(dplyr::all_of(model_terms)))
+      disp_table <- as.data.frame(dplyr::group_modify(cds_pdata, ~ disp_calc_helper_NB(cds[, .x$rowname], cds@expressionFamily, min_cells_detected)))
     }else{
-      cds_pdata <- dplyr::group_by_(dplyr::select_(rownames_to_column(pData(cds)), "rowname"))
-      disp_table <- as.data.frame(cds_pdata %>% do(disp_calc_helper_NB(cds[,.$rowname], cds@expressionFamily, min_cells_detected)))
+      cds_pdata <- dplyr::group_by(dplyr::select(rownames_to_column(pData(cds)), rowname))
+      disp_table <- as.data.frame(dplyr::group_modify(cds_pdata, ~ disp_calc_helper_NB(cds[, .x$rowname], cds@expressionFamily, min_cells_detected)))
       #disp_table <- data.frame(rowname = names(type_res), CellType = type_res)
     }
 

@@ -44,7 +44,7 @@ run_pca <- function(data, ...) {
 # #' @param cds the CellDataSet upon which to perform this operation
 # #' @param verbose Whether to emit verbose output
 # #' @return an updated CellDataSet object which an
-#' @importFrom igraph graph.adjacency V graph.dfs get.all.shortest.paths
+#' @importFrom igraph graph_from_adjacency_matrix V dfs all_shortest_paths
 scale_pseudotime <- function(cds, verbose = F) {
   Parent <- NA
   pd <- pData(cds)
@@ -67,7 +67,7 @@ scale_pseudotime <- function(cds, verbose = F) {
   uniq_cell_list <- unique(c(as.character(adj_list$Source), as.character(adj_list$Target)))
   adj_mat <- matrix(rep(0, length(uniq_cell_list)^2), nrow = length(uniq_cell_list), ncol = length(uniq_cell_list), dimnames = list(uniq_cell_list, uniq_cell_list))
   adj_mat[as.matrix(adj_list)] <- 1
-  net <- graph.adjacency(as.matrix(adj_mat), mode = 'directed', weighted = NULL, diag = FALSE)
+  net <- graph_from_adjacency_matrix(as.matrix(adj_mat), mode = 'directed', weighted = NULL, diag = FALSE)
 
   # plot(net, layout = layout.fruchterman.reingold,
   #        vertex.size = 25,
@@ -79,7 +79,7 @@ scale_pseudotime <- function(cds, verbose = F) {
   #        edge.width=2,
   #        edge.color="black")
 
-  #dfs_net <- graph.dfs(net, root = 1, order.out = T) #DFS search for the cell fate tree
+  #dfs_net <- dfs(net, root = 1, order.out = T) #DFS search for the cell fate tree
   #net_order_out <- as.vector(dfs_net$order.out)
   net_leaves <- which(degree(net, v = V(net), mode = "out")==0, useNames = T)
 
@@ -87,7 +87,7 @@ scale_pseudotime <- function(cds, verbose = F) {
 
   #2. scale the psedutime:
   for(i in net_leaves) {
-    path_vertex <- as.vector(get.all.shortest.paths(net, from = 1, to = i, mode="out")$res[[1]])
+    path_vertex <- as.vector(all_shortest_paths(net, from = 1, to = i, mode="out")$res[[1]])
     pd_subset <- subset(pd, State %in% path_vertex & is.na(scale_pseudotime))
 
     #scale the pseudotime between the parent cell of the first cell to the last cell on the remaing branch
@@ -136,19 +136,19 @@ get_next_node_id <- function()
 #' @param mst The minimum spanning tree, as an igraph object.
 #' @param use_weights Whether to use edge weights when finding the diameter path of the tree.
 #' @param root_node The name of the root node to use for starting the path finding.
-#' @importFrom igraph V vertex degree get.diameter edge graph.neighborhood 
-#' @importFrom igraph graph.empty get.edgelist get.all.shortest.paths
-#' @importFrom igraph subcomponent induced.subgraph ecount
+#' @importFrom igraph V vertex degree diameter edge neighborhood
+#' @importFrom igraph make_empty_graph as_edgelist all_shortest_paths
+#' @importFrom igraph subcomponent induced_subgraph ecount
 pq_helper<-function(mst, use_weights=TRUE, root_node=NULL)
 {
-  new_subtree <- graph.empty()
+  new_subtree <- make_empty_graph()
 
   root_node_id <- paste("Q_", get_next_node_id(), sep="")
 
   new_subtree <- new_subtree + vertex(root_node_id, type="Q", color="black")
 
   if (is.null(root_node) == FALSE){
-    sp <- get.all.shortest.paths(mst, from=V(mst)[root_node])
+    sp <- all_shortest_paths(mst, from=V(mst)[root_node])
     #print(sp)
     sp_lengths <- sapply(sp$res, length)
     target_node_idx <- which(sp_lengths == max(sp_lengths))[1]
@@ -157,9 +157,9 @@ pq_helper<-function(mst, use_weights=TRUE, root_node=NULL)
     #print(diam)
   }else{
     if (use_weights){
-      diam <- V(mst)[get.diameter(mst)]
+      diam <- V(mst)[diameter(mst)]
     }else{
-      diam <- V(mst)[get.diameter(mst, weights=NA)]
+      diam <- V(mst)[diameter(mst, weights=NA)]
     }
   }
 
@@ -215,7 +215,7 @@ pq_helper<-function(mst, use_weights=TRUE, root_node=NULL)
       new_subtree <- new_subtree + edge(new_p_id, V(mst)[backbone_n]$name)
       new_subtree <- new_subtree + edge(root_node_id, new_p_id)
 
-      nb <- graph.neighborhood(mst, 1, nodes=backbone_n)[[1]]
+      nb <- neighborhood(mst, 1, nodes=backbone_n)[[1]]
 
       #print (E(nb))
       #print (V(nb))
@@ -228,7 +228,7 @@ pq_helper<-function(mst, use_weights=TRUE, root_node=NULL)
 
           sc <- subcomponent(mst_no_backbone, n)
 
-          sg <- induced.subgraph(mst_no_backbone, sc, impl="copy_and_delete")
+          sg <- induced_subgraph(mst_no_backbone, vids = sc)
 
 
           if (ecount(sg) > 0)
@@ -243,7 +243,7 @@ pq_helper<-function(mst, use_weights=TRUE, root_node=NULL)
               new_subtree <- new_subtree + vertex(V(sub_pq$subtree)[v]$name, type=V(sub_pq$subtree)[v]$type, color=V(sub_pq$subtree)[v]$color, diam_path_len=V(sub_pq$subtree)[v]$diam_path_len)
             }
 
-            edge_list <- get.edgelist(sub_pq$subtree)
+            edge_list <- as_edgelist(sub_pq$subtree)
             for (i in 1:nrow(edge_list))
             {
               new_subtree <- new_subtree + edge(V(sub_pq$subtree)[edge_list[i, 1]]$name, V(sub_pq$subtree)[edge_list[i, 2]]$name)
@@ -280,7 +280,7 @@ pq_helper<-function(mst, use_weights=TRUE, root_node=NULL)
   return (list(root=root_node_id, subtree=new_subtree))
 }
 
-#' @importFrom igraph V degree V<- delete.vertices
+#' @importFrom igraph V degree V<- delete_vertices
 make_canonical <-function(pq_tree)
 {
   type <- NA
@@ -307,7 +307,7 @@ make_canonical <-function(pq_tree)
     }
   }
 
-  canonical_pq <- delete.vertices(canonical_pq, V(canonical_pq)[type == "P" & igraph::degree(canonical_pq, mode="out")==1])
+  canonical_pq <- delete_vertices(canonical_pq, V(canonical_pq)[type == "P" & igraph::degree(canonical_pq, mode="out")==1])
   #print (V(canonical_pq)[type == "Q" & igraph::degree(canonical_pq, mode="in")==0])
   return (canonical_pq)
 }
@@ -374,10 +374,10 @@ order_p_node <- function(q_level_list, dist_matrix)
   return(opt_perm)
 }
 
-#' @importFrom igraph V vertex edge graph.empty get.shortest.paths E
+#' @importFrom igraph V vertex edge make_empty_graph shortest_paths E
 order_q_node <- function(q_level_list, dist_matrix)
 {
-  new_subtree <- graph.empty()
+  new_subtree <- make_empty_graph()
 
   if (length(q_level_list) == 1)
   {
@@ -409,10 +409,10 @@ order_q_node <- function(q_level_list, dist_matrix)
   last_fwd = V(new_subtree)[paste(length(q_level_list),"F")]
   last_rev = V(new_subtree)[paste(length(q_level_list),"R")]
 
-  FF_path <- unlist(get.shortest.paths(new_subtree, from=as.vector(first_fwd), to=as.vector(last_fwd), mode="out", output="vpath")$vpath)
-  FR_path <- unlist(get.shortest.paths(new_subtree, from=as.vector(first_fwd), to=as.vector(last_rev), mode="out", output="vpath")$vpath)
-  RF_path <- unlist(get.shortest.paths(new_subtree, from=as.vector(first_rev), to=as.vector(last_fwd), mode="out", output="vpath")$vpath)
-  RR_path <- unlist(get.shortest.paths(new_subtree, from=as.vector(first_rev), to=as.vector(last_rev), mode="out", output="vpath")$vpath)
+  FF_path <- unlist(shortest_paths(new_subtree, from=as.vector(first_fwd), to=as.vector(last_fwd), mode="out", output="vpath")$vpath)
+  FR_path <- unlist(shortest_paths(new_subtree, from=as.vector(first_fwd), to=as.vector(last_rev), mode="out", output="vpath")$vpath)
+  RF_path <- unlist(shortest_paths(new_subtree, from=as.vector(first_rev), to=as.vector(last_fwd), mode="out", output="vpath")$vpath)
+  RR_path <- unlist(shortest_paths(new_subtree, from=as.vector(first_rev), to=as.vector(last_rev), mode="out", output="vpath")$vpath)
 
   # print (FF_path)
   # print (FR_path)
@@ -552,7 +552,7 @@ extract_good_ordering <- function(pq_tree, curr_node, dist_matrix)
 #' @param num_branches The number of outcomes allowed in the trajectory.
 #' @param reverse_main_path Whether to reverse the direction of the trajectory
 #' 
-#' @importFrom igraph V vertex edge graph.empty get.edgelist
+#' @importFrom igraph V vertex edge make_empty_graph as_edgelist
 extract_good_branched_ordering <- function(orig_pq_tree, curr_node, dist_matrix, num_branches, reverse_main_path=FALSE)
 {
   requireNamespace("plyr")
@@ -588,7 +588,7 @@ extract_good_branched_ordering <- function(orig_pq_tree, curr_node, dist_matrix,
   branch_point_roots <- list()
 
   # Start building the ordering tree. Each pseudo-time segment will be a node.
-  branch_tree <- graph.empty()
+  branch_tree <- make_empty_graph()
   #root_branch_id <- "Q_1"
   #branch_tree <- branch_tree + vertex(root_branch_id)
 
@@ -627,7 +627,7 @@ extract_good_branched_ordering <- function(orig_pq_tree, curr_node, dist_matrix,
     names(branch_pseudotimes)[length(branch_pseudotimes)] = branch_point_roots[[i]]
   }
 
-  cell_ordering_tree <- graph.empty()
+  cell_ordering_tree <- make_empty_graph()
   curr_branch <- "Q_1"
 
   extract_branched_ordering_helper <- function(branch_tree, curr_branch, cell_ordering_tree, branch_pseudotimes, dist_matrix, reverse_ordering=FALSE)
@@ -659,7 +659,7 @@ extract_good_branched_ordering <- function(orig_pq_tree, curr_node, dist_matrix,
 
     for (child in V(branch_tree) [ suppressWarnings(nei(curr_branch, mode="out")) ])
     {
-      child_cell_ordering_subtree <- graph.empty()
+      child_cell_ordering_subtree <- make_empty_graph()
 
       child_head <- names(branch_pseudotimes[[child]])[1]
       child_tail <- names(branch_pseudotimes[[child]])[length(branch_pseudotimes[[child]])]
@@ -700,7 +700,7 @@ extract_good_branched_ordering <- function(orig_pq_tree, curr_node, dist_matrix,
         cell_ordering_tree <- cell_ordering_tree + vertex(V(child_cell_ordering_subtree)[v]$name)
       }
 
-      edge_list <- get.edgelist(child_cell_ordering_subtree)
+      edge_list <- as_edgelist(child_cell_ordering_subtree)
       for (i in 1:nrow(edge_list))
       {
         cell_ordering_tree <- cell_ordering_tree + edge(V(cell_ordering_tree)[edge_list[i, 1]]$name, V(cell_ordering_tree)[edge_list[i, 2]]$name)
@@ -894,7 +894,7 @@ ica_helper <- function(X, n.comp, alg.typ = c("parallel", "deflation"), fun = c(
   return(list(X = t(X), K = t(K), W = t(a), A = t(A), S = t(S), svs=svs))
 }
 
-#' @importFrom igraph V minimum.spanning.tree graph.adjacency degree get.diameter graph.dfs
+#' @importFrom igraph V mst graph_from_adjacency_matrix degree diameter dfs
 extract_ddrtree_ordering <- function(cds, root_cell, verbose=T)
 {
 
@@ -914,7 +914,7 @@ extract_ddrtree_ordering <- function(cds, root_cell, verbose=T)
   parents = rep(NA, ncol(dp))
   names(parents) <- V(dp_mst)$name
 
-  mst_traversal <- graph.dfs(dp_mst,
+  mst_traversal <- dfs(dp_mst,
                              root=root_cell,
                              neimode = "all",
                              unreachable=FALSE,
@@ -957,7 +957,7 @@ extract_ddrtree_ordering <- function(cds, root_cell, verbose=T)
 }
 
 #' @importFrom stats dist
-#' @importFrom igraph graph.adjacency minimum.spanning.tree V
+#' @importFrom igraph graph_from_adjacency_matrix mst V
 select_root_cell <- function(cds, root_state=NULL, reverse=FALSE){
   if (is.null(root_state) == FALSE) {
     if (is.null(pData(cds)$State)){
@@ -971,8 +971,8 @@ select_root_cell <- function(cds, root_state=NULL, reverse=FALSE){
 
     # build a local MST to find a good root cell for this state
     dp <- as.matrix(dist(t(reducedDimS(cds)[,row.names(root_cell_candidates)])))
-    gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-    dp_mst <- minimum.spanning.tree(gp)
+    gp <- graph_from_adjacency_matrix(dp, mode = "undirected", weighted = TRUE)
+    dp_mst <- mst(gp)
 
     # Make sure to use the real MST here
     tip_leaves <- names(which(degree(minSpanningTree(cds)) == 1))
@@ -983,7 +983,7 @@ select_root_cell <- function(cds, root_state=NULL, reverse=FALSE){
     #   stop(paste("Error: no valid root cells for State =", root_state))
     # }
       
-    diameter <- get.diameter(dp_mst)
+    diameter <- diameter(dp_mst)
 
     if (length(diameter) == 0){
       stop(paste("Error: no valid root cells for State =", root_state))
@@ -1012,7 +1012,7 @@ select_root_cell <- function(cds, root_state=NULL, reverse=FALSE){
     if (is.null(minSpanningTree(cds))){
       stop("Error: no spanning tree found for CellDataSet object. Please call reduceDimension before calling orderCells()")
     }
-    diameter <- get.diameter(minSpanningTree(cds))
+    diameter <- diameter(minSpanningTree(cds))
     if (is.null(reverse) == FALSE && reverse == TRUE){
       root_cell = names(diameter[length(diameter)])
     } else {
@@ -1056,7 +1056,7 @@ select_root_cell <- function(cds, root_state=NULL, reverse=FALSE){
 #' @param reverse whether to reverse the beginning and end points of the learned biological process.
 #' 
 #' @importFrom stats dist
-#' @importFrom igraph graph.adjacency V as.undirected
+#' @importFrom igraph graph_from_adjacency_matrix V as_undirected
 #' 
 #' @return an updated CellDataSet object, in which phenoData contains values for State and Pseudotime for each cell
 #' @export
@@ -1090,8 +1090,8 @@ orderCells <- function(cds,
 
     cellPairwiseDistances(cds) <- as.matrix(dist(adjusted_S))
     # Build an MST of the cells in ICA space.
-    gp <- graph.adjacency(dp, mode="undirected", weighted=TRUE)
-    dp_mst <- minimum.spanning.tree(gp)
+    gp <- graph_from_adjacency_matrix(dp, mode="undirected", weighted=TRUE)
+    dp_mst <- mst(gp)
     minSpanningTree(cds) <- dp_mst
     # Build the PQ tree
     next_node <<- 0
@@ -1103,7 +1103,7 @@ orderCells <- function(cds,
     cc_ordering <- order_list$ordering_df
     row.names(cc_ordering) <- cc_ordering$sample_name
 
-    minSpanningTree(cds)  <- as.undirected(order_list$cell_ordering_tree)
+    minSpanningTree(cds)  <- as_undirected(order_list$cell_ordering_tree)
 
     pData(cds)$Pseudotime <-  cc_ordering[row.names(pData(cds)),]$pseudo_time
     pData(cds)$State <-  cc_ordering[row.names(pData(cds)),]$cell_state
@@ -1112,7 +1112,7 @@ orderCells <- function(cds,
     mst_branch_nodes <- V(minSpanningTree(cds))[which(degree(minSpanningTree(cds)) > 2)]$name
 
     minSpanningTree(cds) <- dp_mst
-    cds@auxOrderingData[[cds@dim_reduce_type]]$cell_ordering_tree <- as.undirected(order_list$cell_ordering_tree)
+    cds@auxOrderingData[[cds@dim_reduce_type]]$cell_ordering_tree <- as_undirected(order_list$cell_ordering_tree)
 
   } else if (cds@dim_reduce_type == "DDRTree"){
     if (is.null(num_paths) == FALSE){
@@ -1337,7 +1337,7 @@ normalize_expr_data <- function(cds,
 #' @import DDRTree
 #' @import Rtsne
 #' @importFrom stats dist prcomp
-#' @importFrom igraph graph.adjacency
+#' @importFrom igraph graph_from_adjacency_matrix
 #' @export
 reduceDimension <- function(cds,
                             max_components=2,
@@ -1393,8 +1393,8 @@ reduceDimension <- function(cds,
     reducedDimK(cds) <- as.matrix(reducedDim)
     dp <- as.matrix(dist(reducedDim))
     cellPairwiseDistances(cds) <- dp
-    gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-    dp_mst <- minimum.spanning.tree(gp)
+    gp <- graph_from_adjacency_matrix(dp, mode = "undirected", weighted = TRUE)
+    dp_mst <- mst(gp)
     minSpanningTree(cds) <- dp_mst
     cds@dim_reduce_type <- "function_passed"
   }
@@ -1506,8 +1506,8 @@ reduceDimension <- function(cds,
       adjusted_S <- Matrix::t(reducedDimS(cds))
       dp <- as.matrix(dist(adjusted_S))
       cellPairwiseDistances(cds) <- dp
-      gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-      dp_mst <- minimum.spanning.tree(gp)
+      gp <- graph_from_adjacency_matrix(dp, mode = "undirected", weighted = TRUE)
+      dp_mst <- mst(gp)
       minSpanningTree(cds) <- dp_mst
       cds@dim_reduce_type <- "ICA"
     }
@@ -1546,8 +1546,8 @@ reduceDimension <- function(cds,
       adjusted_K <- Matrix::t(reducedDimK(cds))
       dp <- as.matrix(dist(adjusted_K))
       cellPairwiseDistances(cds) <- dp
-      gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-      dp_mst <- minimum.spanning.tree(gp)
+      gp <- graph_from_adjacency_matrix(dp, mode = "undirected", weighted = TRUE)
+      dp_mst <- mst(gp)
       minSpanningTree(cds) <- dp_mst
       cds@dim_reduce_type <- "DDRTree"
       cds <- findNearestPointOnMST(cds)
@@ -1579,7 +1579,7 @@ findNearestPointOnMST <- function(cds){
   cds
 }
 
-#' @importFrom igraph graph.adjacency V
+#' @importFrom igraph graph_from_adjacency_matrix V
 #' @importFrom stats dist
 project2MST <- function(cds, Projection_Method){
   dp_mst <- minSpanningTree(cds)
@@ -1637,8 +1637,8 @@ project2MST <- function(cds, Projection_Method){
   diag(dp) <- 0
 
   cellPairwiseDistances(cds) <- dp
-  gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-  dp_mst <- minimum.spanning.tree(gp)
+  gp <- graph_from_adjacency_matrix(dp, mode = "undirected", weighted = TRUE)
+  dp_mst <- mst(gp)
 
   cds@auxOrderingData[["DDRTree"]]$pr_graph_cell_proj_tree <- dp_mst
   cds@auxOrderingData[["DDRTree"]]$pr_graph_cell_proj_dist <- P #dp, P projection point not output
@@ -1718,11 +1718,11 @@ project_point_to_line_segment <- function(p, df){
 # #' @param starting_cell the initial vertex for traversing on the graph
 # #' @param end_cells the terminal vertex for traversing on the graph
 # #' @return a list of shortest path from the initial cell and terminal cell, geodestic distance between initial cell and terminal cells and branch point passes through the shortest path
-#' @importFrom igraph shortest.paths shortest_paths degree
+#' @importFrom igraph distances shortest_paths degree
 traverseTree <- function(g, starting_cell, end_cells){
-  distance <- shortest.paths(g, v=starting_cell, to=end_cells)
+  distance <- distances(g, v=starting_cell, to=end_cells)
   branchPoints <- which(degree(g) == 3)
-  path <- shortest_paths(g, from = starting_cell, end_cells)
+  path <- shortest_paths(g, from = starting_cell, to = end_cells)
 
   return(list(shortest_path = path$vpath, distance = distance, branch_points = intersect(branchPoints, unlist(path$vpath))))
 }
@@ -1758,7 +1758,7 @@ traverseTreeCDS <- function(cds, starting_cell, end_cells){
 # #' @param cds a cell dataset after trajectory reconstruction
 # #' @param cells a vector contains all the cells you want to subset
 # #' @return a new cds containing only the cells from the cells argument
-#' @importFrom igraph graph.adjacency
+#' @importFrom igraph graph_from_adjacency_matrix
 SubSet_cds <- function(cds, cells){
   cells <- unique(cells)
   if(ncol(reducedDimK(cds)) != ncol(cds))
@@ -1782,8 +1782,8 @@ SubSet_cds <- function(cds, cells){
   adjusted_K <- Matrix::t(reducedDimK(cds_subset))
   dp <- as.matrix(dist(adjusted_K))
   cellPairwiseDistances(cds_subset) <- dp
-  gp <- graph.adjacency(dp, mode = "undirected", weighted = TRUE)
-  dp_mst <- minimum.spanning.tree(gp)
+  gp <- graph_from_adjacency_matrix(dp, mode = "undirected", weighted = TRUE)
+  dp_mst <- mst(gp)
   minSpanningTree(cds_subset) <- dp_mst
   cds_subset@dim_reduce_type <- "DDRTree"
   cds_subset <- findNearestPointOnMST(cds_subset)

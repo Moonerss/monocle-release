@@ -83,8 +83,11 @@ classifyCellsHelperCell <- function(cds, cth){
     type_res <- cell_class_func(exprs(cds))
     gate_res[[ V(cth@classificationTree) [ v ]$name]] <- type_res
   }
-  cds_pdata <- dplyr::group_by_(dplyr::select_(rownames_to_column(pData(cds)), "rowname"), "rowname") 
-  class_df <- as.data.frame(cds_pdata %>% do(CellType = cth_classifier_cell(.$rowname, cth, "root", gate_res)))
+  cds_pdata <- dplyr::select(rownames_to_column(pData(cds)), rowname)
+  class_df <- data.frame(
+    rowname = cds_pdata$rowname,
+    CellType = vapply(cds_pdata$rowname, cth_classifier_cell, character(1), cth = cth, curr_node = "root", gate_res = gate_res)
+  )
   CellType <- factor(unlist(class_df$CellType))
   names(CellType) <- class_df$rowname
   #CellType <- cth_classifier_cell(cds_subset, cth, "root", gate_res)
@@ -154,13 +157,13 @@ classifyCellsHelperCell <- function(cds, cth){
 #'   updated CellTypeHierarchy object. \code{classifyCells} returns an updated 
 #'   \code{CellDataSet} with a new column, "CellType", in the pData table.
 #'   
-#' @importFrom igraph vertex graph.empty
+#' @importFrom igraph vertex make_empty_graph
 #'   
 #' @export
 newCellTypeHierarchy <- function()
 {
   cth <- new( "CellTypeHierarchy",
-              classificationTree = graph.empty())
+              classificationTree = make_empty_graph())
   
   root_node_id <- "root"
   
@@ -205,10 +208,10 @@ addCellType <- function(cth, cell_type_name, classify_func, parent_cell_type_nam
 #' 
 #' @describeIn newCellTypeHierarchy Add a cell type to a CellTypeHierarchy
 #' @param cds The CelllDataSet you want to classify
-#' @param ... character strings that you wish to pass to dplyr's group_by_ routine
+#' @param ... character strings that you wish to pass to dplyr's group_by routine
 #' @param enrichment_thresh fraction to be multipled by each cell type percentage. Only used if frequency_thresh is NULL, both cannot be NULL
 #' @param frequency_thresh If at least this fraction of group of cells meet a cell types marker criteria, impute them all to be of that type.  
-#' @importFrom dplyr select_ do group_by_ inner_join %>%
+#' @importFrom dplyr group_modify group_by inner_join %>%
 #' @importFrom tibble rownames_to_column
 #' @importFrom Biobase pData pData<-
 #' @export 
@@ -251,8 +254,6 @@ addCellType <- function(cth, cell_type_name, classify_func, parent_cell_type_nam
 #' }
 #' 
 classifyCells <- function(cds, cth, frequency_thresh=NULL, enrichment_thresh=NULL, ...) {
-  progress_opts <- options()$dplyr.show_progress
-  options(dplyr.show_progress = F)
   if (length(list(...)) > 0){
     if (is.null(enrichment_thresh) && is.null(frequency_thresh))
       stop("Error: to use classifyCells in grouped mode, you must also set frequency_thresh")
@@ -265,7 +266,7 @@ classifyCells <- function(cds, cth, frequency_thresh=NULL, enrichment_thresh=NUL
     }else
       frequency_thresholds <- frequency_thresh
 
-    cds_pdata <- dplyr::group_by_(dplyr::select_(rownames_to_column(pData(cds)), "rowname", ...), ...) 
+    cds_pdata <- dplyr::group_by(dplyr::select(rownames_to_column(pData(cds)), "rowname", ...), ...) 
     class_df <- as.data.frame(cds_pdata %>% dplyr::do(CellType = classifyCellsHelperCds(cds[,.$rowname], cth, frequency_thresh)))
     class_df$CellType <-  as.character(unlist(class_df$CellType))
     #class_df$rowname <- as.character(class_df$rowname)
@@ -275,8 +276,6 @@ classifyCells <- function(cds, cth, frequency_thresh=NULL, enrichment_thresh=NUL
     class_df$CellType <- as.character(class_df$CellType)
     class_df$rowname <- as.character(class_df$rowname)
   }
-  
-  options(dplyr.show_progress = progress_opts)
   
   pData(cds) <- pData(cds)[!(names(pData(cds)) %in% "CellType")]
   
@@ -329,12 +328,9 @@ calculateMarkerSpecificity <- function(cds, cth, remove_ambig=TRUE, remove_unkno
     #names(averageExpression) <- row.names(fData(cds))
     return (data.frame(gene_id = row.names(fData(cds)), expr_val=averageExpression))
   }
-  progress_opts <- options()$dplyr.show_progress
-  options(dplyr.show_progress = T)
-
   cds <- cds[,row.names(subset(pData(cds), CellType %in% c("Unknown", "Ambiguous") == FALSE))]
-  cds_pdata <- dplyr::group_by_(dplyr::select_(rownames_to_column(pData(cds)), "rowname", "CellType"), "CellType") 
-  class_df <- as.data.frame(cds_pdata %>% do(markerSpecificityHelper(cds[,.$rowname], cth)))
+  cds_pdata <- dplyr::group_by(dplyr::select(rownames_to_column(pData(cds)), rowname, CellType), CellType)
+  class_df <- as.data.frame(dplyr::group_modify(cds_pdata, ~ markerSpecificityHelper(cds[, .x$rowname], cth)))
   class_df <- dcast(class_df, CellType ~ gene_id, value.var = "expr_val")
   row.names(class_df) <- class_df$CellType
   class_df <- class_df[,-1]
@@ -358,7 +354,7 @@ calculateMarkerSpecificity <- function(cds, cth, remove_ambig=TRUE, remove_unkno
 
 #' Select the most cell type specific markers
 #' 
-#' This is a handy wrapper function around dplyr's top_n function to extract
+#' This is a handy wrapper function around dplyr's slice_max function to extract
 #' the most specific genes for each cell type. Convenient, for example, for 
 #' selecting a balanced set of genes to be used in semi-supervised clustering 
 #' or ordering.
@@ -366,13 +362,13 @@ calculateMarkerSpecificity <- function(cds, cth, remove_ambig=TRUE, remove_unkno
 #' @param marker_specificities The dataframe of specificity results produced by \code{\link{calculateMarkerSpecificity}()}
 #' @param num_markers The number of markers that will be shown for each cell type
 #' @return A data frame of specificity results
-#' @importFrom dplyr top_n %>%
+#' @importFrom dplyr group_by slice_max %>%
 #' @export
 selectTopMarkers <- function(marker_specificities, num_markers = 10){
   specificity <- NA
   as.data.frame(marker_specificities %>%
-    group_by_("CellType") %>%
-    top_n(n = num_markers, wt = specificity))
+    dplyr::group_by(CellType) %>%
+    dplyr::slice_max(order_by = specificity, n = num_markers, with_ties = TRUE))
 }
 
 #' Test genes for cell type-dependent expression
@@ -393,7 +389,7 @@ selectTopMarkers <- function(marker_specificities, num_markers = 10){
 #' @param remove_unknown a boolean that indicates whether or not unknown cells should be removed from the cds
 #' @return A table of differential expression test results
 #' @importFrom stringr str_replace_all
-#' @importFrom dplyr sample_n
+#' @importFrom dplyr slice_sample
 #' @importFrom Biobase pData pData<-
 #' @export 
 markerDiffTable <- function (cds, cth, residualModelFormulaStr="~1", balanced=FALSE, reclassify_cells=TRUE, remove_ambig=TRUE, remove_unknown=TRUE, verbose=FALSE, cores=1) {
@@ -427,7 +423,7 @@ markerDiffTable <- function (cds, cth, residualModelFormulaStr="~1", balanced=FA
     selected_cells <- c()
 
     for (cell_type in names(cell_type_counts)){
-      cell_type_sample <- sample_n(rownames_to_column(subset(pData(cds), CellType == cell_type)), n_cells)$rowname
+      cell_type_sample <- dplyr::slice_sample(rownames_to_column(subset(pData(cds), CellType == cell_type)), n = n_cells)$rowname
       selected_cells <- c(selected_cells, cell_type_sample)
     }
     

@@ -24,7 +24,7 @@ Depends:
     DDRTree (>= 0.1.4),
 Imports:
     parallel,
-    igraph (>= 1.0.1),
+    igraph (>= 2.3.3),
     BiocGenerics,
     HSMMSingleCell (>= 0.101.5),
     plyr,
@@ -40,7 +40,7 @@ Imports:
     reshape2,
     limma,
     tibble,
-    dplyr,
+    dplyr (>= 1.2.1),
     qlcMatrix,
     pheatmap,
     stringr,
@@ -48,8 +48,7 @@ Imports:
     slam,
     viridis,
     stats,
-    biocViews,
-    RANN(>= 2.5),
+    RANN (>= 2.5),
     Rcpp (>= 0.12.0)
 LinkingTo: Rcpp
 Suggests:
@@ -66,4 +65,4 @@ biocViews: Sequencing, RNASeq, GeneExpression, DifferentialExpression,
     Infrastructure, DataImport, DataRepresentation, Visualization,
     Clustering, MultipleComparison, QualityControl
 Packaged: 2014-04-07 21:31:54 UTC; sarora
-RoxygenNote: 6.0.1
+Config/roxygen2/version: 8.1.0

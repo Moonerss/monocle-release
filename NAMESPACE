@@ -76,111 +76,127 @@ import(irlba)
 import(methods)
 import(pheatmap)
 import(slam)
-importFrom(Biobase,"exprs<-")
-importFrom(Biobase,"fData<-")
-importFrom(Biobase,"pData<-")
-importFrom(Biobase,ExpressionSet)
-importFrom(Biobase,annotatedDataFrameFrom)
-importFrom(Biobase,assayDataNew)
-importFrom(Biobase,esApply)
-importFrom(Biobase,exprs)
-importFrom(Biobase,fData)
-importFrom(Biobase,multiassign)
-importFrom(Biobase,pData)
-importFrom(BiocGenerics,"sizeFactors<-")
-importFrom(BiocGenerics,clusterApply)
-importFrom(BiocGenerics,clusterCall)
-importFrom(BiocGenerics,estimateDispersions)
-importFrom(BiocGenerics,estimateSizeFactors)
-importFrom(BiocGenerics,parCapply)
-importFrom(BiocGenerics,parRapply)
-importFrom(BiocGenerics,sizeFactors)
+importFrom(Biobase,
+  "exprs<-",
+  "fData<-",
+  "pData<-",
+  ExpressionSet,
+  annotatedDataFrameFrom,
+  assayDataNew,
+  esApply,
+  exprs,
+  fData,
+  multiassign,
+  pData
+)
+importFrom(BiocGenerics,
+  "sizeFactors<-",
+  estimateDispersions,
+  estimateSizeFactors,
+  sizeFactors
+)
 importFrom(Matrix,readMM)
 importFrom(RANN,nn2)
 importFrom(cluster,pam)
 importFrom(combinat,permn)
-importFrom(densityClust,densityClust)
-importFrom(densityClust,findClusters)
-importFrom(dplyr,"%>%")
-importFrom(dplyr,do)
-importFrom(dplyr,group_by_)
-importFrom(dplyr,inner_join)
-importFrom(dplyr,left_join)
-importFrom(dplyr,mutate)
-importFrom(dplyr,n)
-importFrom(dplyr,sample_n)
-importFrom(dplyr,select_)
-importFrom(dplyr,slice)
-importFrom(dplyr,top_n)
-importFrom(fastICA,ica.R.def)
-importFrom(fastICA,ica.R.par)
+importFrom(densityClust,
+  densityClust,
+  findClusters
+)
+importFrom(dplyr,
+  "%>%",
+  group_by,
+  group_modify,
+  inner_join,
+  left_join,
+  mutate,
+  n,
+  slice,
+  slice_max,
+  slice_sample
+)
+importFrom(fastICA,
+  ica.R.def,
+  ica.R.par
+)
 importFrom(ggplot2,Position)
 importFrom(grDevices,rgb)
-importFrom(igraph,"V<-")
-importFrom(igraph,E)
-importFrom(igraph,V)
-importFrom(igraph,as.undirected)
-importFrom(igraph,bfs)
-importFrom(igraph,cluster_louvain)
-importFrom(igraph,degree)
-importFrom(igraph,delete.vertices)
-importFrom(igraph,ecount)
-importFrom(igraph,edge)
-importFrom(igraph,get.all.shortest.paths)
-importFrom(igraph,get.diameter)
-importFrom(igraph,get.edgelist)
-importFrom(igraph,get.shortest.paths)
-importFrom(igraph,graph.adjacency)
-importFrom(igraph,graph.data.frame)
-importFrom(igraph,graph.dfs)
-importFrom(igraph,graph.empty)
-importFrom(igraph,graph.neighborhood)
-importFrom(igraph,induced.subgraph)
-importFrom(igraph,layout_as_tree)
-importFrom(igraph,membership)
-importFrom(igraph,minimum.spanning.tree)
-importFrom(igraph,modularity)
-importFrom(igraph,shortest.paths)
-importFrom(igraph,shortest_paths)
-importFrom(igraph,subcomponent)
-importFrom(igraph,vertex)
+importFrom(igraph,
+  "V<-",
+  E,
+  V,
+  all_shortest_paths,
+  as_edgelist,
+  as_undirected,
+  bfs,
+  cluster_louvain,
+  degree,
+  delete_vertices,
+  dfs,
+  diameter,
+  distances,
+  ecount,
+  edge,
+  graph_from_adjacency_matrix,
+  graph_from_data_frame,
+  induced_subgraph,
+  layout_as_tree,
+  make_empty_graph,
+  membership,
+  modularity,
+  mst,
+  neighborhood,
+  shortest_paths,
+  subcomponent,
+  vertex
+)
 importFrom(limma,removeBatchEffect)
 importFrom(matrixStats,rowSds)
-importFrom(parallel,detectCores)
-importFrom(parallel,makeCluster)
-importFrom(parallel,mclapply)
-importFrom(parallel,mcmapply)
-importFrom(parallel,splitIndices)
-importFrom(parallel,stopCluster)
-importFrom(plyr,.)
-importFrom(plyr,ddply)
+importFrom(parallel,
+  detectCores,
+  makeCluster,
+  mclapply,
+  mcmapply,
+  splitIndices,
+  stopCluster
+)
+importFrom(plyr,
+  .,
+  ddply
+)
 importFrom(qlcMatrix,rowMax)
-importFrom(reshape2,dcast)
-importFrom(reshape2,melt)
-importFrom(stats,Gamma)
-importFrom(stats,as.dist)
-importFrom(stats,as.formula)
-importFrom(stats,cooks.distance)
-importFrom(stats,cor)
-importFrom(stats,cutree)
-importFrom(stats,density)
-importFrom(stats,dist)
-importFrom(stats,ecdf)
-importFrom(stats,glm)
-importFrom(stats,lowess)
-importFrom(stats,median)
-importFrom(stats,optim)
-importFrom(stats,p.adjust)
-importFrom(stats,prcomp)
-importFrom(stats,qnorm)
-importFrom(stats,rnorm)
-importFrom(stats,sd)
-importFrom(stats,setNames)
-importFrom(stats,var)
-importFrom(stringr,str_c)
-importFrom(stringr,str_replace_all)
-importFrom(stringr,str_split)
-importFrom(stringr,str_trim)
+importFrom(reshape2,
+  dcast,
+  melt
+)
+importFrom(stats,
+  Gamma,
+  as.dist,
+  as.formula,
+  cooks.distance,
+  cor,
+  cutree,
+  density,
+  dist,
+  ecdf,
+  glm,
+  lowess,
+  median,
+  optim,
+  p.adjust,
+  prcomp,
+  qnorm,
+  rnorm,
+  sd,
+  setNames,
+  var
+)
+importFrom(stringr,
+  str_c,
+  str_replace_all,
+  str_split,
+  str_trim
+)
 importFrom(tibble,rownames_to_column)
 importFrom(utils,data)
 importFrom(viridis,scale_color_viridis)

@@ -38,7 +38,7 @@ monocle_theme_opts <- function()
 #' @return a ggplot2 plot object
 #' @import ggplot2
 #' @importFrom reshape2 melt
-#' @importFrom igraph get.edgelist
+#' @importFrom igraph as_edgelist
 #' @importFrom tibble rownames_to_column
 #' @importFrom viridis scale_color_viridis
 #' @importFrom dplyr left_join mutate n slice
@@ -93,8 +93,8 @@ plot_cell_trajectory <- function(cds,
   
   ica_space_df <- Matrix::t(reduced_dim_coords) %>%
     as.data.frame() %>%
-    select_(prin_graph_dim_1 = x, prin_graph_dim_2 = y) %>%
-    mutate(sample_name = rownames(.), sample_state = rownames(.))
+    dplyr::rename(prin_graph_dim_1 = x, prin_graph_dim_2 = y) %>%
+    dplyr::mutate(sample_name = rownames(.), sample_state = rownames(.))
   
   dp_mst <- minSpanningTree(cds)
   
@@ -104,15 +104,15 @@ plot_cell_trajectory <- function(cds,
   
   edge_df <- dp_mst %>%
     igraph::as_data_frame() %>%
-    select_(source = "from", target = "to") %>%
-    left_join(ica_space_df %>% select_(source="sample_name", source_prin_graph_dim_1="prin_graph_dim_1", source_prin_graph_dim_2="prin_graph_dim_2"), by = "source") %>%
-    left_join(ica_space_df %>% select_(target="sample_name", target_prin_graph_dim_1="prin_graph_dim_1", target_prin_graph_dim_2="prin_graph_dim_2"), by = "target")
+    dplyr::rename(source = from, target = to) %>%
+    left_join(ica_space_df %>% dplyr::rename(source="sample_name", source_prin_graph_dim_1="prin_graph_dim_1", source_prin_graph_dim_2="prin_graph_dim_2"), by = "source") %>%
+    left_join(ica_space_df %>% dplyr::rename(target="sample_name", target_prin_graph_dim_1="prin_graph_dim_1", target_prin_graph_dim_2="prin_graph_dim_2"), by = "target")
   
   data_df <- t(monocle::reducedDimS(cds)) %>%
     as.data.frame() %>%
-    select_(data_dim_1 = x, data_dim_2 = y) %>%
+    dplyr::rename(data_dim_1 = x, data_dim_2 = y) %>%
     rownames_to_column("sample_name") %>%
-    mutate(sample_state) %>%
+    dplyr::mutate(sample_state = sample_state) %>%
     left_join(lib_info_with_pseudo %>% rownames_to_column("sample_name"), by = "sample_name")
   
   return_rotation_mat <- function(theta) {
@@ -2163,11 +2163,11 @@ plot_pc_variance_explained <- function(cds,
     return(p)  
 }
 
-#' @importFrom igraph shortest_paths degree shortest.paths
+#' @importFrom igraph shortest_paths degree distances
 traverseTree <- function(g, starting_cell, end_cells){
-  distance <- shortest.paths(g, v=starting_cell, to=end_cells)
+  distance <- distances(g, v=starting_cell, to=end_cells)
   branchPoints <- which(degree(g) == 3)
-  path <- shortest_paths(g, from = starting_cell, end_cells)
+  path <- shortest_paths(g, from = starting_cell, to = end_cells)
   
   return(list(shortest_path = path$vpath, distance = distance, branch_points = intersect(branchPoints, unlist(path$vpath))))
 }
@@ -2191,7 +2191,7 @@ traverseTree <- function(g, starting_cell, end_cells){
 #' @param ... Additional arguments passed to the scale_color_viridis function
 #' @return a ggplot2 plot object
 #' @import ggplot2
-#' @importFrom igraph V get.edgelist layout_as_tree
+#' @importFrom igraph V as_edgelist layout_as_tree
 #' @importFrom reshape2 melt
 #' @importFrom viridis scale_color_viridis
 #' @export
@@ -2292,7 +2292,7 @@ plot_complex_cell_trajectory <- function(cds,
     stop("You must first call orderCells() before using this function")
   }
   
-  edge_list <- as.data.frame(get.edgelist(dp_mst))
+  edge_list <- as.data.frame(as_edgelist(dp_mst))
   colnames(edge_list) <- c("source", "target")
   
   edge_df <- merge(ica_space_df, edge_list, by.x="sample_name", by.y="source", all=TRUE)

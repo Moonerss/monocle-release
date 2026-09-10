@@ -71,7 +71,7 @@ clusterGenes<-function(expr_matrix, k, method=function(x){as.dist((1 - cor(Matri
 #' @param ... Additional arguments passed to \code{\link{densityClust}()}
 #' @return an updated CellDataSet object, in which phenoData contains values for Cluster for each cell
 #' @importFrom densityClust densityClust findClusters
-#' @importFrom igraph graph.data.frame cluster_louvain modularity membership
+#' @importFrom igraph graph_from_data_frame cluster_louvain modularity membership
 #' @import ggplot2
 #' @importFrom RANN nn2
 #' @references Rodriguez, A., & Laio, A. (2014). Clustering by fast search and find of density peaks. Science, 344(6191), 1492-1496. doi:10.1126/science.1242072
@@ -278,7 +278,7 @@ clusterCells <- function(cds,
     links <- links[links[,1]>0, ]
     relations <- as.data.frame(links)
     colnames(relations)<- c("from","to","weight")
-    t3 <- system.time(g <- graph.data.frame(relations, directed=FALSE))
+    t3 <- system.time(g <- graph_from_data_frame(relations, directed=FALSE))
     
     # Other community detection algorithms: 
     #    cluster_walktrap, cluster_spinglass, 

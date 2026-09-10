@@ -8,11 +8,14 @@
 \usage{
 newCellTypeHierarchy()
 
-classifyCells(cds, cth, frequency_thresh = NULL, enrichment_thresh = NULL,
-  ...)
+classifyCells(cds, cth, frequency_thresh = NULL, enrichment_thresh = NULL, ...)
 
-calculateMarkerSpecificity(cds, cth, remove_ambig = TRUE,
-  remove_unknown = TRUE)
+calculateMarkerSpecificity(
+  cds,
+  cth,
+  remove_ambig = TRUE,
+  remove_unknown = TRUE
+)
 }
 \arguments{
 \item{cds}{The CelllDataSet you want to classify}
@@ -23,7 +26,7 @@ calculateMarkerSpecificity(cds, cth, remove_ambig = TRUE,
 
 \item{enrichment_thresh}{fraction to be multipled by each cell type percentage. Only used if frequency_thresh is NULL, both cannot be NULL}
 
-\item{...}{character strings that you wish to pass to dplyr's group_by_ routine}
+\item{...}{character strings that you wish to pass to dplyr's group_by routine}
 
 \item{remove_ambig}{a boolean that determines if ambiguous cells should be removed}
 
@@ -102,9 +105,9 @@ CellTypeHierarchy objects are Monocle's mechanism for
 }
 \section{Functions}{
 \itemize{
-\item \code{classifyCells}: Add a cell type to a CellTypeHierarchy
+\item \code{classifyCells()}: Add a cell type to a CellTypeHierarchy
 
-\item \code{calculateMarkerSpecificity}: Calculate each gene's specificity for each cell type 
+\item \code{calculateMarkerSpecificity()}: Calculate each gene's specificity for each cell type 
 
 Computes the Jensen-Shannon distance between the distribution of a gene's 
 expression across cells and a hypothetical gene that is perfectly restricted
@@ -112,8 +115,8 @@ to each cell type. The Jensen-Shannon distance is an information theoretic
 metric between two probability distributions. It is a widely accepted measure
 of cell-type specificity. For a complete description see Cabili \emph{et. al},
 Genes & Development (2011).
-}}
 
+}}
 \examples{
 \dontrun{
 # Initialize a new CellTypeHierachy
